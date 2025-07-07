@@ -31,15 +31,12 @@ Route::middleware('jwt')->group(function () {
 
     // CREATE
     Route::post('/blog',[BlogController::class,'createBlog']);
-
     // READ 
     Route::get('/blog',[BlogController::class,'readAllBlogs']);
     Route::get('/blog/{id}',[BlogController::class,'readBlog']);
-
     // UPDATE
     Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
     //Route::put('/blog/{id}',[BlogController::class,'updateBlog']);
-
     // DELETE
     Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);
 });

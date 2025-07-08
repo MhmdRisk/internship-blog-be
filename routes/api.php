@@ -17,8 +17,9 @@ user needs to be able to:
 read (get), create (post), update (patch), delete (delete)
 */
 
-
-
+// READ 
+Route::get('/blog',[BlogController::class,'readAllBlogs']);
+Route::get('/blog/{id}',[BlogController::class,'readBlog']);
 
 // AUTHENTICATION:
 Route::post('/register', [AuthController::class, 'register']);
@@ -31,9 +32,6 @@ Route::middleware('jwt')->group(function () {
 
     // CREATE
     Route::post('/blog',[BlogController::class,'createBlog']);
-    // READ 
-    Route::get('/blog',[BlogController::class,'readAllBlogs']);
-    Route::get('/blog/{id}',[BlogController::class,'readBlog']);
     // UPDATE
     Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
     //Route::put('/blog/{id}',[BlogController::class,'updateBlog']);

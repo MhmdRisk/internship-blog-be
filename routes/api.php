@@ -38,3 +38,19 @@ Route::middleware('jwt')->group(function () {
     // DELETE
     Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);
 });
+
+Route::post('/refresh', [AuthController::class, 'refresh']);
+//Route::post('/refresh', [AuthController::class, 'refreshToken']);
+Route::post('/refresh', [AuthController::class, 'refreshAccessToken']);
+
+
+/*
+Route::get('/debug-jwt-ttl', function () {
+    return response()->json([
+        'env.JWT_TTL' => env('JWT_TTL'),
+        'config.jwt.ttl' => config('jwt.ttl'),
+        'casted' => (int) env('JWT_TTL'),
+        'type' => gettype(config('jwt.ttl')),
+    ]);
+});
+*/

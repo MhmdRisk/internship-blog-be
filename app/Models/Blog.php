@@ -26,4 +26,9 @@ class Blog extends Model
         return $date->format('d-m-Y');
     }
 
+    // blog's author maps to user's email
+    public function author(){
+        return $this->belongsTo(User::class, 'author', 'email');
+    }
+
 }

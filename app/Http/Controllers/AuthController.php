@@ -85,6 +85,7 @@ class AuthController extends Controller
             'refresh_token' => $refreshToken,
             //'expires_in' => auth('api')->factory()->getTTL() * 60,
             'expires_in' => $ttl,
+            'user' => $user,
             //'time_to_live' => $expiresAt - time(),
         ]);
     }
@@ -168,7 +169,5 @@ class AuthController extends Controller
         'expires_in' => auth('api')->factory()->getTTL() * 60,
     ]);
 }
-
-
 
 }

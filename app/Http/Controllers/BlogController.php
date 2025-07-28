@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BlogSubmitted;
 use App\Models\Blog;
 use Illuminate\Http\Request;
 use Str;
+use Illuminate\Support\Facades\Mail;
 
 class BlogController extends Controller
 {
@@ -41,10 +43,37 @@ class BlogController extends Controller
             $blog->image = $path;
         }
 
-        $blog-> save();
+        $blog->save();
+
+        /*
+        $users = DB::table('users')
+            ->join('blogs', 'blogs.author', '=', 'users.email')
+            ->select('users.*', 'blogs.title', 'blogs.content')
+            ->get();
+
+        Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
+        */
+
+
+        // also ask about this method:
+        /*
+        $blog = Blog::findOrFail($blogId);
+        $user = User::where('email', $blog->author)->first();
+
+        if ($user) {
+            Mail::to($user->email)->send(new BlogSubmitted($blog));
+        }
+        */
+        
+        // $blog = Blog::with('author')->findOrFail();
+
+        //if ($blog->author) {
+        Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
+        //Mail::to("m.boustany@techlab.solutions")->send(new BlogSubmitted($blog));
+        //}
 
         return response()->json([
-            'message' => 'Blog created successfully.',
+            'message' => 'Blog created and email sent successfully.',
             'blog' => $blog,
         ], 201);
     }

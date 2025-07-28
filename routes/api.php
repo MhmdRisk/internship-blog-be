@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\HandshakeController;
+use App\Http\Middleware\HandshakeMiddleware;
+use App\Mail\BlogSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
@@ -25,6 +28,11 @@ Route::get('/blog/{id}',[BlogController::class,'readBlog']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+
+
+
+
+
 Route::middleware('jwt')->group(function () {
     Route::get('/user', [AuthController::class, 'getUser']);
     Route::post('/user', [AuthController::class, 'updateUser']);
@@ -36,7 +44,19 @@ Route::middleware('jwt')->group(function () {
     Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
     //Route::put('/blog/{id}',[BlogController::class,'updateBlog']);
     // DELETE
-    Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);
+    Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);    
+});
+
+Route::middleware(['handshake'])->group(function () {
+    Route::get('/questions', [HandshakeController::class, 'handle']);
+});
+
+// generate random nonce, store it temporarily, then return it to the client
+Route::get('/handshake', function () {
+    $nonce = Str::uuid()->toString(); // generate unique nonce
+    Cache::put("handshake_nonce:$nonce", true, now()->addMinutes(5)); // store it for 5 mins
+
+    return response()->json(['nonce' => $nonce]);
 });
 
 Route::post('/refresh', [AuthController::class, 'refresh']);
@@ -44,13 +64,3 @@ Route::post('/refresh', [AuthController::class, 'refresh']);
 Route::post('/refresh', [AuthController::class, 'refreshAccessToken']);
 
 
-/*
-Route::get('/debug-jwt-ttl', function () {
-    return response()->json([
-        'env.JWT_TTL' => env('JWT_TTL'),
-        'config.jwt.ttl' => config('jwt.ttl'),
-        'casted' => (int) env('JWT_TTL'),
-        'type' => gettype(config('jwt.ttl')),
-    ]);
-});
-*/

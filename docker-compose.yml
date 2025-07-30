@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   blog-backend:
@@ -19,6 +19,7 @@ services:
       DB_DATABASE: laravel
       DB_USERNAME: root
       DB_PASSWORD: root
+    command: sh -c "composer install && php artisan serve --host=0.0.0.0 --port=8000"
 
   db:
     image: mysql:latest
@@ -35,8 +36,11 @@ services:
 
   phpmyadmin:
     image: phpmyadmin:latest
+    restart: always
     ports: 
-      - 9002:80
+      - "9002:80"
+    
+      
 
 volumes:
   dbdata:

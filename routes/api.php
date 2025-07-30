@@ -7,6 +7,7 @@ use App\Mail\BlogSubmitted;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use Illuminate\Support\Str;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -21,17 +22,12 @@ read (get), create (post), update (patch), delete (delete)
 */
 
 // READ 
-Route::get('/blog',[BlogController::class,'readAllBlogs']);
-Route::get('/blog/{id}',[BlogController::class,'readBlog']);
+//Route::get('/blog',[BlogController::class,'readAllBlogs']);
+//Route::get('/blog/{id}',[BlogController::class,'readBlog']);
 
 // AUTHENTICATION:
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-
-
-
-
-
 
 Route::middleware('jwt')->group(function () {
     Route::get('/user', [AuthController::class, 'getUser']);
@@ -39,17 +35,21 @@ Route::middleware('jwt')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // CREATE
-    Route::post('/blog',[BlogController::class,'createBlog']);
+    //Route::post('/blog',[BlogController::class,'createBlog']);
     // UPDATE
-    Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
+    //Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
     //Route::put('/blog/{id}',[BlogController::class,'updateBlog']);
     // DELETE
-    Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);    
+    //Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);    
 });
 
 Route::middleware(['handshake'])->group(function () {
-    Route::get('/questions', [HandshakeController::class, 'handle']);
+    Route::get('/blog', [BlogController::class, 'readAllBlogs']);
+    Route::post('/blog',[BlogController::class,'createBlog']);
+    Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
+    Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);
 });
+
 
 // generate random nonce, store it temporarily, then return it to the client
 Route::get('/handshake', function () {
@@ -62,5 +62,4 @@ Route::get('/handshake', function () {
 Route::post('/refresh', [AuthController::class, 'refresh']);
 //Route::post('/refresh', [AuthController::class, 'refreshToken']);
 Route::post('/refresh', [AuthController::class, 'refreshAccessToken']);
-
 

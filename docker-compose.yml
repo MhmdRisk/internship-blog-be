@@ -1,5 +1,3 @@
-
-
 services:
   blog-backend:
     build:
@@ -8,18 +6,19 @@ services:
     image: blog-backend
     container_name: blog-backend
     ports:
-      - "3000:8000"
+      - "8001:8002"
     volumes:
-      - .:/var/www
+      - ./:/var/www
+      # - appdata:/var/www
     depends_on:
       - db
     environment:
       DB_HOST: db
       DB_PORT: 3306
-      DB_DATABASE: laravel
+      DB_DATABASE: blog
       DB_USERNAME: root
-      DB_PASSWORD: root
-    command: sh -c "composer install && php artisan serve --host=0.0.0.0 --port=8000"
+      DB_PASSWORD: 
+    command: sh -c "composer install && php artisan serve --host=127.0.0.1 --port=8000"
 
   db:
     image: mysql:latest
@@ -28,9 +27,9 @@ services:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: laravel
+      MYSQL_DATABASE: blog
       MYSQL_USER: root
-      MYSQL_PASSWORD: root
+      MYSQL_PASSWORD:
     volumes:
       - dbdata:/var/lib/mysql
 
@@ -39,8 +38,12 @@ services:
     restart: always
     ports: 
       - "9002:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: 
     
-      
-
+    
 volumes:
   dbdata:
+  # appdata:

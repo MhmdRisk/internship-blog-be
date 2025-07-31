@@ -1,0 +1,17 @@
+.git
+.gitignore
+node_modules
+npm-debug.log
+docker-compose.yml
+Dockerfile
+.env
+.env.*
+storage/logs
+storage/framework
+vendor
+tests
+*.md
+.idea
+.vscode
+*.swp
+*.swo

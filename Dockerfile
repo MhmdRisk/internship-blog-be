@@ -1,4 +1,4 @@
-FROM php:8.3
+FROM php:8.4.1
 
 # install dependencies
 RUN apt-get update && apt-get install -y \
@@ -24,7 +24,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 WORKDIR /var/www
 
 # Copy existing application directory
-COPY . /var/www
+COPY . .
 
 # Set ownership
 RUN chown -R www-data:www-data /var/www
@@ -39,4 +39,4 @@ RUN find /var/www -type f -exec chmod 664 {} \;
 EXPOSE 8000
 
 # Start Laravel dev server
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["php", "artisan", "serve", "--host=127.0.0.1", "--port=8000"]

@@ -5,7 +5,6 @@ FROM php:8.4.1
 WORKDIR /var/www
 
 # Install system dependencies and PHP extensions
-# This is a good place to remove the lists to keep the image small
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -30,8 +29,14 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy the entire application source code
 COPY . .
 
-# Set ownership of all files to www-data so the user can run commands
-RUN chown -R www-data:www-data /var/www
+# Create and set permissions on necessary directories before running composer
+# This is a critical step to prevent the InvalidArgumentException.
+# The `mkdir -p` command ensures parent directories are created if they don't exist.
+RUN mkdir -p /var/www/storage/framework/cache \
+    /var/www/storage/framework/sessions \
+    /var/www/storage/framework/views \
+    /var/www/bootstrap/cache \
+    && chown -R www-data:www-data /var/www
 
 # Switch to the www-data user to run composer install and avoid the root warning
 USER www-data
@@ -39,8 +44,8 @@ USER www-data
 # Install application dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Switch back to root to set permissions on critical directories
-# This is necessary because the www-data user might not have permissions to do this.
+# Switch back to root to set final permissions
+# This is a good practice to ensure the web server has the necessary rights.
 USER root
 
 # Grant write permissions for the web server on storage and cache directories

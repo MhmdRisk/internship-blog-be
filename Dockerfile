@@ -1,6 +1,10 @@
+# Start with the official PHP image
 FROM php:8.4.1
 
-# install dependencies
+# Set working directory inside the container
+WORKDIR /var/www
+
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -15,31 +19,34 @@ RUN apt-get update && apt-get install -y \
     nano \
     libzip-dev \
     libpq-dev \
-    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath
+    && rm -rf /var/lib/apt/lists/* \
+    && docker-php-ext-configure gd --with-jpeg --with-freetype \
+    && docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www
+# Copy composer.json and composer.lock files first to leverage Docker cache
+COPY composer.json composer.lock ./
 
-# Copy existing application directory
-COPY . .
-
-# Install PHP dependencies with Composer
+# Install application dependencies
+# This layer is cached and only re-run if composer.json or composer.lock change
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Set ownership
-RUN chown -R www-data:www-data /var/www
+# Copy the rest of the application code
+COPY . .
 
-# Set directory permissions to 775
-RUN find /var/www -type d -exec chmod 775 {} \;
+# Grant permissions for the web server to write to the storage and cache directories
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www/storage \
+    && chmod -R 775 /var/www/bootstrap/cache
 
-# Set file permissions to 664
-RUN find /var/www -type f -exec chmod 664 {} \;
+# Switch to the www-data user for security
+USER www-data
 
-# Expose port
+# Expose the application port
 EXPOSE 8000
 
-# Start Laravel dev server
+# Start the Laravel development server
+# The host must be 0.0.0.0 to be accessible from the host machine
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

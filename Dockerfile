@@ -32,8 +32,9 @@ COPY . .
 # Switch to the www-data user to run composer install and avoid the root warning
 USER www-data
 
-# Install application dependencies
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+# IMPORTANT: Added --verbose flag for debugging.
+# This will provide a detailed log of why the composer command is failing.
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --verbose
 
 # Switch back to root to manage file permissions and ownership
 USER root
@@ -54,5 +55,4 @@ USER www-data
 EXPOSE 8000
 
 # Start the Laravel development server
-# The host must be 0.0.0.0 to be accessible from the host machine
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

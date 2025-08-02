@@ -5,6 +5,7 @@ FROM php:8.4.1
 WORKDIR /var/www
 
 # Install system dependencies and PHP extensions
+# This is a good place to remove the lists to keep the image small
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -26,22 +27,27 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy composer.json and composer.lock files first to leverage Docker cache
-COPY composer.json composer.lock ./
-
-# Install application dependencies
-# This layer is cached and only re-run if composer.json or composer.lock change
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
-
-# Copy the rest of the application code
+# Copy the entire application source code
 COPY . .
 
-# Grant permissions for the web server to write to the storage and cache directories
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 /var/www/storage \
+# Set ownership of all files to www-data so the user can run commands
+RUN chown -R www-data:www-data /var/www
+
+# Switch to the www-data user to run composer install and avoid the root warning
+USER www-data
+
+# Install application dependencies
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+
+# Switch back to root to set permissions on critical directories
+# This is necessary because the www-data user might not have permissions to do this.
+USER root
+
+# Grant write permissions for the web server on storage and cache directories
+RUN chmod -R 775 /var/www/storage \
     && chmod -R 775 /var/www/bootstrap/cache
 
-# Switch to the www-data user for security
+# Switch back to the www-data user for the final command
 USER www-data
 
 # Expose the application port

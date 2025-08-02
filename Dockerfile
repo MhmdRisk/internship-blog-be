@@ -5,7 +5,6 @@ FROM php:8.4.1
 WORKDIR /var/www
 
 # Install system dependencies and PHP extensions
-# This is a good place to remove the lists to keep the image small
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -30,21 +29,22 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy the entire application source code
 COPY . .
 
-# Set ownership of all files to www-data so the user can run commands
-RUN chown -R www-data:www-data /var/www
-
 # Switch to the www-data user to run composer install and avoid the root warning
 USER www-data
 
 # Install application dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Switch back to root to set permissions on critical directories
-# This is necessary because the www-data user might not have permissions to do this.
+# Switch back to root to manage file permissions and ownership
 USER root
 
-# Grant write permissions for the web server on storage and cache directories
-RUN chmod -R 775 /var/www/storage \
+# IMPORTANT: Set robust permissions
+# This command ensures www-data owns all files and directories,
+# and then sets specific read/write/execute permissions.
+RUN chown -R www-data:www-data /var/www \
+    && find /var/www -type d -exec chmod 775 {} \; \
+    && find /var/www -type f -exec chmod 664 {} \; \
+    && chmod -R 775 /var/www/storage \
     && chmod -R 775 /var/www/bootstrap/cache
 
 # Switch back to the www-data user for the final command

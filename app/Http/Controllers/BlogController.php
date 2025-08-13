@@ -26,51 +26,29 @@ class BlogController extends Controller
             'title' => 'required|max:100|string',
             'author' => 'required|max:100|string',
             'content' => 'required|string',
-            'image' => 'nullable|file|mimes:jpeg,png,jpg'
+            'image' => 'nullable|file|mimes:string',
+            // 'image' => 'nullable|file|mimes:jpeg,png,jpg',
+            // 'imageURL' => 'nullable|string'
         ]);
 
         $blog = new Blog();
-        //$blog->title = $request->title;
-        //$blog->author = $request->author;
-        //$blog->content = $request->content;
         $blog->title = $validated['title'];
         $blog->author = $validated['author'];
         $blog->content = $validated['content'];
-        //$blog->image = $validated['image'];
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('images', 'public');
             $blog->image = $path;
         }
-
-        $blog->save();
-
         /*
-        $users = DB::table('users')
-            ->join('blogs', 'blogs.author', '=', 'users.email')
-            ->select('users.*', 'blogs.title', 'blogs.content')
-            ->get();
-
-        Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
-        */
-
-
-        // also ask about this method:
-        /*
-        $blog = Blog::findOrFail($blogId);
-        $user = User::where('email', $blog->author)->first();
-
-        if ($user) {
-            Mail::to($user->email)->send(new BlogSubmitted($blog));
+        if ($request->hasFile('imageURL')) {
+            $blog->imageURL = $validated['imageURL'];
         }
         */
-        
-        // $blog = Blog::with('author')->findOrFail();
 
-        //if ($blog->author) {
+        $blog->save();
+        
         Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
-        //Mail::to("m.boustany@techlab.solutions")->send(new BlogSubmitted($blog));
-        //}
 
         return response()->json([
             'message' => 'Blog created and email sent successfully.',
@@ -137,7 +115,6 @@ class BlogController extends Controller
     
 
     function readBlog($id) { /// READ (GET)
-        //$blog = Blog::find($request->id);
         $blog = Blog::find($id);
 
         if (!$blog) {
@@ -159,8 +136,6 @@ class BlogController extends Controller
 
         // return description
         $blogs->getCollection()->transform(function ($blog) {
-            //$blog->description = substr($blog->content, 0, 100); // remove the first 5
-            //return $blog;
             return [
                 'id' => $blog->id,
                 'title' => $blog->title,
@@ -169,13 +144,6 @@ class BlogController extends Controller
                 'description' => substr($blog->content, 0, 100), // shorten content
             ];
         });
-        
-        /*
-        // hard-code specific response
-        return response()->json(
-            $blogs
-        );
-        */
 
         return response()->json([
             //'data' => $blogs
@@ -186,25 +154,6 @@ class BlogController extends Controller
             'total_blogs' => $blogs->total(),
             'per_page' => $blogs->perPage(),
         ]);
-
-        /*
-        note to self:
-        my previous implementation was NOT wrong, 
-        however i was getting certain data returned 
-        that isn't returned in certain methods
-        (such as first_page_url and last_page_url).
-        
-        mine still work properly tho and may be used
-        instead of the current one (however the one
-        that's being used now is much more scalable)
-
-        to check out the old json output, use the same
-        return statement, but replace
-        'data' => $blogs->items();
-        with
-        'data' => $blogs;
-        */
-
     }
 
 

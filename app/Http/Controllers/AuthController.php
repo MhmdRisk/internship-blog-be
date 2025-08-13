@@ -16,7 +16,6 @@ class AuthController extends Controller
 {
     //
     public function register(Request $request) {
-        //dd('hello');
         $request->validate([
             'name' => 'required|string|max:225',
             'email' => 'required|string|email|max:225',
@@ -29,20 +28,15 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        $OTPController = new OTPController;
+        $OTP = $OTPController->generateOTP();
+
         $token = JWTAuth::fromUser($user);
-        /*
-        try {
-            $token = JWTAuth::fromUser($user);
-        } catch (JWTException $e) {
-            return response()->json(['error' => 'Could not create token'], 500);
-        }
-        */
 
         $refreshToken = Str::random(64);
         $user->refresh_token = hash('sha256', $refreshToken);
         $user->save();
 
-        // return response()->json(compact('user', 'token'), 201);
         return response()->json([
             "Status:"=>true,
             "user" => $user,

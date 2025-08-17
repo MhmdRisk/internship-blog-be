@@ -15,13 +15,18 @@ class BlogController extends Controller
         return "Hello there";
     }
 
-    /*
-    alternate solution: create a function that does all the validation, 
-    and call it inside all the other 3 functions when/if needed
-    */
-
     function createBlog(Request $request) { // CREATE (POST)
-        //
+        // check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // check if user has author or admin role
+        $user = auth()->user();
+        if (!$user->hasRole('author') && !$user->hasRole('admin')) {
+            return response()->json(['error' => 'Forbidden - Only authors and admins can create blogs'], 403);
+        }
+
         $validated = $request->validate([
             'title' => 'required|max:100|string',
             'author' => 'required|max:100|string',
@@ -58,20 +63,26 @@ class BlogController extends Controller
 
 
     function updateBlog(Request $request, $id) { // PATCH
-        // 
-        //\Log::info("ID: ", $id);
-        //\Log::info();
+        // check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // check if user has edit permission
+        $user = auth()->user();
+        if (!$user->hasPermission('edit blogs')) {
+            return response()->json(['error' => 'You do not have permission to edit blogs'], 403);
+        }
+
         \Log::info('Data received', ['data' => $request->all()]);
 
-        //$id = $request->id;
+        // $id = $request->id;
         $blog = Blog::findOrFail($id);
 
-        /*
-        // to double check: validation
-        if ($request->has('title')) $blog->title = $request->title;
-        if ($request->has('author')) $blog->author = $request->author;
-        if ($request->has('content')) $blog->content = $request->content;
-        */
+        // authors can only edit their own blogs, admins can edit any blog
+        if (!$user->hasRole('admin') && $blog->author !== $user->email) {
+            return response()->json(['error' => 'You can only edit your own blogs'], 403);
+        }
 
         // added the SOMETIMES attribute, as the PATCH method does not necesserily change the entire entry
         $validated = $request->validate([
@@ -81,31 +92,12 @@ class BlogController extends Controller
             'image' => 'sometimes|file|mimes:jpeg,jpg,png'
         ]);
 
-        //\Log::info($validated['title']);
-
-        // testing if input array is still empty on postman
-        /*
-        if (empty($validated)) {
-            return response()->json([
-                'message' => 'No valid fields provided for update.',
-                'blog' => $blog
-            ], 422);
-        }
-        */
-
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('blog_images', 'public');
             $validated['image'] = $imagePath;
         }
         
-        //\Log::info($request->all());
-        //\Log::info($id);
-        //\Log::info($blog);
-        //dd($validated);
-        //\Log::info($validated['title']);
-
         $blog->update($validated);
-        //$blog->save();
 
         return response()->json([
             'message' => 'Blog updated successfully.',
@@ -158,6 +150,17 @@ class BlogController extends Controller
 
 
     function deleteBlog($id) {
+        // check if user is authenticated
+        if (!auth()->check()) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // check if user has delete permission
+        $user = auth()->user();
+        if (!$user->hasPermission('delete blogs')) {
+            return response()->json(['error' => 'You do not have permission to delete blogs'], 403);
+        }
+
         //$blog = Blog::find($request->id);
         $blog = Blog::find($id);
 

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\OTPMail;
 use App\Models\RefreshToken;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -28,8 +30,11 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        $OTPController = new OTPController;
-        $OTP = $OTPController->generateOTP();
+        // $OTPController = new OTPController;
+        // $OTP = $OTPController->generateOTP();
+        
+        // do this again but maybe implement it in OTPController instead.
+        // Mail::to($user)->send(new OTPMail($OTP));
 
         $token = JWTAuth::fromUser($user);
 

@@ -34,16 +34,32 @@ Route::middleware('jwt')->group(function () {
 
 Route::get('/blog', [BlogController::class, 'readAllBlogs']);
 Route::get('/blog/{id}', [BlogController::class, 'readBlog']);
-Route::post('/blog',[BlogController::class,'createBlog']);
-Route::delete('/blog/{id}',[BlogController::class,'deleteBlog']);
 
 
-Route::middleware(['handshake'])->group(function () {
-    Route::patch('/blog/{id}',[BlogController::class,'updateBlog']);
+Route::middleware(['jwt'])->group(function () {
+    // CREATE BLOG requires author or admin role
+    Route::post('/blog', [BlogController::class, 'createBlog'])->middleware('role:author,admin');
+    
+    // UPDATE BLOG (PATCH) requires 'edit blogs' permission
+    Route::middleware(['handshake'])->group(function () {
+        Route::patch('/blog/{id}', [BlogController::class, 'updateBlog'])->middleware('permission:edit blogs');
+    });
+    
+    // DELETE BLOG requires 'delete blogs' permission (admin only)
+    Route::delete('/blog/{id}', [BlogController::class, 'deleteBlog'])->middleware('permission:delete blogs');
 });
 
 
-Route::get('/generateOTP', [OTPController::class, 'generateOTP']);
+// OTP routes
+Route::middleware('jwt')->group(function () {
+    Route::post('/generateOTP', [OTPController::class, 'generateOTP']);
+    Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']);
+});
+
+
+// TESTING
+Route::post('/test-generateOTP', [OTPController::class, 'testGenerateOTP']);
+Route::post('/test-verifyOTP', [OTPController::class, 'testVerifyOTP']);
 
 
 // generate random nonce, store it temporarily, then return it to the client

@@ -9,7 +9,7 @@ class RefreshToken extends Model
     //
     protected $fillable = ['email', 'token', 'revoked', 'expires_at'];
 
-    // Relation to User
+    // relationship to user
     public function user()
     {
         return $this->belongsTo(User::class);

@@ -5,6 +5,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\JwtMiddleware;
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\CheckPermission;
 
 //use App\Http\Middleware\EnsureTokenIsValid;
 
@@ -25,6 +27,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'jwt' => JwtMiddleware::class,
             'handshake' => HandshakeMiddleware::class,
+            'role' => CheckRole::class,
+            'permission' => CheckPermission::class,
         ]);
     })
 

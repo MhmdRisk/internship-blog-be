@@ -9,11 +9,7 @@ use App\Http\Middleware\Cache;
 
 class HandshakeMiddleware
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
+    //
     public function handle(Request $request, Closure $next): Response
     {
         \Log::debug('HEADERS RECEIVED:', $request->headers->all());

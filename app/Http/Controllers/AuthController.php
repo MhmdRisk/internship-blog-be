@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\OTPMail;
 use App\Models\RefreshToken;
 use App\Models\User;
+use App\Models\OTP;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Carbon\Carbon;
 
 class AuthController extends Controller
 {
@@ -30,11 +32,23 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // $OTPController = new OTPController;
-        // $OTP = $OTPController->generateOTP();
-        
-        // do this again but maybe implement it in OTPController instead.
-        // Mail::to($user)->send(new OTPMail($OTP));
+        // Generate and send OTP email upon registration
+        $otp = random_int(100000, 999999);
+        $expiresAt = Carbon::now()->addMinutes(10);
+
+        // Store OTP in database
+        OTP::create([
+            'user_id' => $user->id,
+            'otp' => $otp,
+            'expires_at' => $expiresAt,
+        ]);
+
+        // Send OTP via email
+        try {
+            Mail::to($user->email)->send(new OTPMail($otp));
+        } catch (\Exception $e) {
+            \Log::error('Failed to send OTP email during registration: ' . $e->getMessage());
+        }
 
         $token = JWTAuth::fromUser($user);
 

@@ -53,13 +53,8 @@ Route::middleware(['jwt'])->group(function () {
 // OTP routes
 Route::middleware('jwt')->group(function () {
     Route::post('/generateOTP', [OTPController::class, 'generateOTP']);
-    Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']);
+    Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']); 
 });
-
-
-// TESTING
-Route::post('/test-generateOTP', [OTPController::class, 'testGenerateOTP']);
-Route::post('/test-verifyOTP', [OTPController::class, 'testVerifyOTP']);
 
 
 // generate random nonce, store it temporarily, then return it to the client

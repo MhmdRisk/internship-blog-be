@@ -12,9 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
-            $table->string('refresh_token')->nullable()->after('remember_token');
-
+            // Only add refresh_token here; role columns are handled in later migrations
+            if (!Schema::hasColumn('users', 'refresh_token')) {
+                $table->string('refresh_token')->nullable()->after('remember_token');
+            }
         });
     }
 
@@ -24,8 +25,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
-            $table->dropColumn('refresh_token');
+            if (Schema::hasColumn('users', 'refresh_token')) {
+                $table->dropColumn('refresh_token');
+            }
         });
     }
 };

@@ -7,6 +7,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\JwtMiddleware;
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\CheckUserStatus;
+use App\Http\Middleware\VerifyHashedKey;
 
 //use App\Http\Middleware\EnsureTokenIsValid;
 
@@ -26,9 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
         //]);
         $middleware->alias([
             'jwt' => JwtMiddleware::class,
-            'handshake' => HandshakeMiddleware::class,
+            'handshake' => VerifyHashedKey::class,
             'role' => CheckRole::class,
             'permission' => CheckPermission::class,
+            'user.status' => CheckUserStatus::class,
+            'verify.hashed_key' => VerifyHashedKey::class,
         ]);
     })
 

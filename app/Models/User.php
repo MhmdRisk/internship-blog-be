@@ -22,6 +22,7 @@ class User extends Authenticatable implements JWTSubject
         'name',
         'email',
         'password',
+        'status',
         // 'OTP',
     ];
     
@@ -32,6 +33,16 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $hidden = [
         'password',
+    ];
+
+    /**
+     * Appended attributes for serialization.
+     * Adds computed role_name for convenience.
+     *
+     * @var list<string>
+     */
+    protected $appends = [
+        'role_name',
     ];
 
     /**
@@ -56,19 +67,42 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    public function roles() {
-        return $this->belongsToMany(Role::class);
+    /**
+     * Keep role_name column in sync when role_id changes.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $user) {
+            if ($user->isDirty('role_id')) {
+                $role = Role::find($user->role_id);
+                $user->role_name = $role ? $role->name : null;
+            }
+        });
+    }
+
+    public function role() {
+        return $this->belongsTo(Role::class);
     }
 
     public function hasRole($role) {
-        return $this->roles()->where('name', $role)->exists();
+        $rel = $this->role;
+        return $rel && ($rel->name === $role);
     }
 
     public function hasPermission($permission) {
-        return $this->roles()
-            ->whereHas('permissions', function ($q) use ($permission) {
-                $q->where('name', $permission);
-            })->exists();
+        $role = $this->role;
+        if (!$role) return false;
+        return $role->permissions()->where('name', $permission)->exists();
+    }
+
+    /**
+     * Accessor: role name (from related role).
+     *
+     * @return string|null
+     */
+    public function getRoleNameAttribute()
+    {
+        return optional($this->role)->name;
     }
 
 }

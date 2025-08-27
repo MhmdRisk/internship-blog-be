@@ -26,6 +26,5 @@ class RolesAndPermissionsSeeder extends Seeder
         // assign permissions to roles
         $admin->permissions()->attach([$edit->id, $delete->id]);
         $author->permissions()->attach($edit->id);
-
     }
 }

@@ -4,7 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Mail\BlogSubmitted;
 use App\Models\Blog;
+use Cloudinary\Api\Upload\UploadApi;
+use Cloudinary\Configuration\Configuration;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Str;
 use Illuminate\Support\Facades\Mail;
 
@@ -16,23 +20,33 @@ class BlogController extends Controller
     }
 
     function createBlog(Request $request) { // CREATE (POST)
-        // check if user is authenticated
-        if (!auth()->check()) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
+        /*
+        // handshake: compare frontend-provided hash to backend key's hash
+        $request->validate([
+            'hashed_key' => 'required|string'
+        ]);
 
-        // check if user has author or admin role
-        $user = auth()->user();
-        if (!$user->hasRole('author') && !$user->hasRole('admin')) {
-            return response()->json(['error' => 'Forbidden - Only authors and admins can create blogs'], 403);
+        $backendKey = env('API_HANDSHAKE_KEY');
+        $backendHashed = hash('sha256', $backendKey);
+        if (!hash_equals($backendHashed, $request->hashed_key)) {
+            return response()->json([
+                'message' => 'keys are not the same'
+            ], 403);
         }
+        */
+        
+        // Log request data for debugging
+        Log::info('Blog creation request data:', [
+            'has_file' => $request->hasFile('image'),
+            'file_valid' => $request->file('image') ? $request->file('image')->isValid() : false,
+            'all_data' => $request->all()
+        ]);
 
         $validated = $request->validate([
             'title' => 'required|max:100|string',
             'author' => 'required|max:100|string',
             'content' => 'required|string',
-            'image' => 'nullable|file|mimes:string',
-            // 'image' => 'nullable|file|mimes:jpeg,png,jpg',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg',
             // 'imageURL' => 'nullable|string'
         ]);
 
@@ -41,9 +55,85 @@ class BlogController extends Controller
         $blog->author = $validated['author'];
         $blog->content = $validated['content'];
 
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('images', 'public');
-            $blog->image = $path;
+        if ($request->hasFile('image') && $request->file('image')->isValid()) {
+            try {
+                // Configure Cloudinary with direct environment variable access
+                $cloudName = getenv('CLOUDINARY_CLOUD_NAME');
+                $apiKey = getenv('CLOUDINARY_API_KEY');
+                $apiSecret = getenv('CLOUDINARY_API_SECRET');
+                
+                // Debug: Log the Cloudinary credentials (remove this in production)
+                Log::info('Cloudinary Config', [
+                    'cloud_name' => $cloudName ? 'set' : 'not set',
+                    'api_key' => $apiKey ? 'set' : 'not set',
+                    'api_secret' => $apiSecret ? 'set' : 'not set'
+                ]);
+                
+                if (!$cloudName || !$apiKey || !$apiSecret) {
+                    throw new \Exception('Cloudinary credentials are not properly configured.');
+                }
+                
+                Configuration::instance([
+                    'cloud' => [
+                        'cloud_name' => $cloudName,
+                        'api_key' => $apiKey,
+                        'api_secret' => $apiSecret,
+                    ],
+                    'url' => [
+                        'secure' => true
+                    ]
+                ]);
+                
+                // Log before upload
+                $file = $request->file('image');
+                Log::info('Starting Cloudinary upload', [
+                    'file_size' => $file->getSize(),
+                    'mime_type' => $file->getMimeType(),
+                    'original_name' => $file->getClientOriginalName()
+                ]);
+                
+                // Upload to Cloudinary
+                $uploadResult = (new UploadApi())->upload($request->file('image')->getRealPath(), [
+                    'folder' => 'blog_images',
+                    'resource_type' => 'auto',
+                    'use_filename' => true,
+                    'unique_filename' => true,
+                    'overwrite' => false
+                ]);
+                
+                // Log successful upload
+                Log::info('Cloudinary upload successful', ['result' => $uploadResult]);
+                
+                // Store the secure URL from Cloudinary
+                if (isset($uploadResult['secure_url'])) {
+                    // Store only the Cloudinary URL without any prefix
+                    $blog->image = $uploadResult['secure_url'];
+                    Log::info('Image URL stored:', ['url' => $blog->image]);
+                } else {
+                    Log::error('No secure_url in Cloudinary response', ['response' => $uploadResult]);
+                    throw new \Exception('Failed to get image URL from Cloudinary');
+                }
+            } catch (\Exception $e) {
+                $errorMessage = $e->getMessage();
+                Log::error('Cloudinary upload failed', [
+                    'error' => $errorMessage,
+                    'trace' => $e->getTraceAsString(),
+                    'request_data' => $request->all()
+                ]);
+                
+                // Check for common Cloudinary errors
+                if (str_contains($errorMessage, '401 Unauthorized')) {
+                    $errorMessage = 'Invalid Cloudinary credentials. Please check your configuration.';
+                } elseif (str_contains($errorMessage, 'File is empty')) {
+                    $errorMessage = 'The uploaded file is empty or corrupted.';
+                }
+                
+                return response()->json([
+                    'error' => 'Failed to upload image',
+                    'message' => $errorMessage,
+                    'hint' => 'Please check your Cloudinary configuration and try again.'
+                ], 500);
+            }
         }
         /*
         if ($request->hasFile('imageURL')) {
@@ -53,26 +143,18 @@ class BlogController extends Controller
 
         $blog->save();
         
-        Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
+        // Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
 
         return response()->json([
             'message' => 'Blog created and email sent successfully.',
             'blog' => $blog,
+            'keys_verification' => $request->attributes->get('keys_message')
         ], 201);
     }
 
 
     function updateBlog(Request $request, $id) { // PATCH
-        // check if user is authenticated
-        if (!auth()->check()) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        // check if user has edit permission
         $user = auth()->user();
-        if (!$user->hasPermission('edit blogs')) {
-            return response()->json(['error' => 'You do not have permission to edit blogs'], 403);
-        }
 
         \Log::info('Data received', ['data' => $request->all()]);
 
@@ -84,7 +166,6 @@ class BlogController extends Controller
             return response()->json(['error' => 'You can only edit your own blogs'], 403);
         }
 
-        // added the SOMETIMES attribute, as the PATCH method does not necesserily change the entire entry
         $validated = $request->validate([
             'title' => 'sometimes|required|max:100|string',
             'author' => 'sometimes|required|max:100|string',
@@ -115,8 +196,10 @@ class BlogController extends Controller
             ], 404);
         }
 
-        // transform image path into full url
-        $blog->image = $blog->image ? asset('storage/' . $blog->image) : null;
+        // Only transform local storage paths to full URLs, leave Cloudinary URLs as is
+        if ($blog->image && !str_starts_with($blog->image, 'http')) {
+            $blog->image = asset('storage/' . $blog->image);
+        }
             
         return response()->json($blog);
     }
@@ -132,7 +215,7 @@ class BlogController extends Controller
                 'id' => $blog->id,
                 'title' => $blog->title,
                 'author' => $blog->author,
-                'image' => $blog->image ? asset('storage/' . $blog->image) : null,
+                'image' => $blog->image && !str_starts_with($blog->image, 'http') ? asset('storage/' . $blog->image) : $blog->image,
                 'description' => substr($blog->content, 0, 100), // shorten content
             ];
         });
@@ -150,16 +233,7 @@ class BlogController extends Controller
 
 
     function deleteBlog($id) {
-        // check if user is authenticated
-        if (!auth()->check()) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        // check if user has delete permission
         $user = auth()->user();
-        if (!$user->hasPermission('delete blogs')) {
-            return response()->json(['error' => 'You do not have permission to delete blogs'], 403);
-        }
 
         //$blog = Blog::find($request->id);
         $blog = Blog::find($id);

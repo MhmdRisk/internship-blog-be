@@ -19,42 +19,55 @@ Route::get('/user', function (Request $request) {
 // testing API routes
 Route::get('/hello',[BlogController::class,'hello']);
 
+// Temporary route to check Cloudinary config
+Route::get('/check-cloudinary', function() {
+    return response()->json([
+        'cloud_name' => getenv('CLOUDINARY_CLOUD_NAME'),
+        'api_key' => getenv('CLOUDINARY_API_KEY') ? 'set' : 'not set',
+        'api_secret' => getenv('CLOUDINARY_API_SECRET') ? 'set' : 'not set'
+    ]);
+});
 
 // AUTHENTICATION:
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 
-Route::middleware('jwt')->group(function () {
-    Route::get('/user', [AuthController::class, 'getUser']);
-    Route::post('/user', [AuthController::class, 'updateUser']);
-    Route::post('/logout', [AuthController::class, 'logout']);  
-});
-
-
 Route::get('/blog', [BlogController::class, 'readAllBlogs']);
 Route::get('/blog/{id}', [BlogController::class, 'readBlog']);
 
+    
+Route::middleware(['handshake'])->group(function () {
+    Route::middleware(['jwt'])->group(function () {
+            // Routes accessible to all authenticated users (including pending verification)
+            Route::get('/user', [AuthController::class, 'getUser']);
+            Route::post('/logout', [AuthController::class, 'logout']);  
 
-Route::middleware(['jwt'])->group(function () {
-    // CREATE BLOG requires author or admin role
-    Route::post('/blog', [BlogController::class, 'createBlog'])->middleware('role:author,admin');
+            Route::post('/generateOTP', [OTPController::class, 'generateOTP']);
+            Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']); 
     
-    // UPDATE BLOG (PATCH) requires 'edit blogs' permission
-    Route::middleware(['handshake'])->group(function () {
-        Route::patch('/blog/{id}', [BlogController::class, 'updateBlog'])->middleware('permission:edit blogs');
+            // route requiring verified user status
+            Route::post('/user', [AuthController::class, 'updateUser'])->middleware('user.status');
+
+            // UPDATE BLOG requires author or admin role AND verified user status
+            Route::patch('/blog/{id}', [BlogController::class, 'updateBlog'])->middleware(['role:author,admin', 'user.status', 'verify.hashed_key']);
+
+        // CREATE BLOG requires author/admin role, verified status, and valid hashed key
+        Route::post('/blog', [BlogController::class, 'createBlog'])->middleware(['role:author,admin', 'user.status', 'verify.hashed_key']);
+                
+        // DELETE BLOG requires admin role AND verified user status
+        Route::delete('/blog/{id}', [BlogController::class, 'deleteBlog'])->middleware(['role:admin', 'user.status', 'verify.hashed_key']);
     });
-    
-    // DELETE BLOG requires 'delete blogs' permission (admin only)
-    Route::delete('/blog/{id}', [BlogController::class, 'deleteBlog'])->middleware('permission:delete blogs');
 });
 
 
+/*
 // OTP routes
 Route::middleware('jwt')->group(function () {
     Route::post('/generateOTP', [OTPController::class, 'generateOTP']);
     Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']); 
 });
+*/
 
 
 // generate random nonce, store it temporarily, then return it to the client

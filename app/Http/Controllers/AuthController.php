@@ -83,12 +83,8 @@ class AuthController extends Controller
             return response()->json(['error' => 'Could not create token'], 500);
         }
 
-        //$user = RefreshToken::where('email', $request->email)->first();
         $user = User::where('email', $request->email)->first();
-
         $ttl = auth('api')->factory()->getTTL() * 60; // in seconds
-        //$issuedAt = now()->timestamp; // current time in UNIX timestamp
-        //$expiresAt = $issuedAt + $ttl;
 
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
@@ -106,14 +102,11 @@ class AuthController extends Controller
         $user->refresh_token = hash('sha256', $refreshToken); // hash before saving
         $user->save();
 
-        // return response()->json(compact('token'));
         return response()->json([
             'access_token' => $token,
             'refresh_token' => $refreshToken,
-            //'expires_in' => auth('api')->factory()->getTTL() * 60,
             'expires_in' => $ttl,
             'user' => $user->load('role:id,name'),
-            //'time_to_live' => $expiresAt - time(),
         ]);
     }
 
@@ -172,20 +165,20 @@ class AuthController extends Controller
         'refresh_token' => 'required|string',
     ]);
 
-    // Hash the received refresh token to compare with DB
+    // hash the received refresh token to compare with DB
     $hashedRefreshToken = hash('sha256', $request->refresh_token);
 
-    // Find user by refresh token
+    // find user by refresh token
     $user = User::where('refresh_token', $hashedRefreshToken)->first();
 
     if (!$user) {
         return response()->json(['error' => 'Invalid refresh token'], 401);
     }
 
-    // Generate new access token
+    // generate new access token
     $newAccessToken = JWTAuth::fromUser($user);
 
-    // Optionally, generate a new refresh token (rotate refresh tokens)
+    // optionally, generate a new refresh token (rotate refresh tokens)
     $newRefreshToken = Str::random(64);
     $user->refresh_token = hash('sha256', $newRefreshToken);
     $user->save();

@@ -22,10 +22,6 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware): void {
         //
-        // $middleware->append(EnsureTokenIsValid::class);
-        //$middleware->group('api', [
-
-        //]);
         $middleware->alias([
             'jwt' => JwtMiddleware::class,
             'handshake' => VerifyHashedKey::class,

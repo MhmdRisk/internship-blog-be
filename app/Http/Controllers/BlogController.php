@@ -20,22 +20,6 @@ class BlogController extends Controller
     }
 
     function createBlog(Request $request) { // CREATE (POST)
-        /*
-        // handshake: compare frontend-provided hash to backend key's hash
-        $request->validate([
-            'hashed_key' => 'required|string'
-        ]);
-
-        $backendKey = env('API_HANDSHAKE_KEY');
-        $backendHashed = hash('sha256', $backendKey);
-        if (!hash_equals($backendHashed, $request->hashed_key)) {
-            return response()->json([
-                'message' => 'keys are not the same'
-            ], 403);
-        }
-        */
-        
-        // Log request data for debugging
         Log::info('Blog creation request data:', [
             'has_file' => $request->hasFile('image'),
             'file_valid' => $request->file('image') ? $request->file('image')->isValid() : false,
@@ -47,7 +31,6 @@ class BlogController extends Controller
             'author' => 'required|max:100|string',
             'content' => 'required|string',
             'image' => 'nullable|file|mimes:jpeg,png,jpg',
-            // 'imageURL' => 'nullable|string'
         ]);
 
         $blog = new Blog();
@@ -57,17 +40,10 @@ class BlogController extends Controller
 
         if ($request->hasFile('image') && $request->file('image')->isValid()) {
             try {
-                // Configure Cloudinary with direct environment variable access
+                // configure Cloudinary with direct environment variable access
                 $cloudName = getenv('CLOUDINARY_CLOUD_NAME');
                 $apiKey = getenv('CLOUDINARY_API_KEY');
                 $apiSecret = getenv('CLOUDINARY_API_SECRET');
-                
-                // Debug: Log the Cloudinary credentials (remove this in production)
-                Log::info('Cloudinary Config', [
-                    'cloud_name' => $cloudName ? 'set' : 'not set',
-                    'api_key' => $apiKey ? 'set' : 'not set',
-                    'api_secret' => $apiSecret ? 'set' : 'not set'
-                ]);
                 
                 if (!$cloudName || !$apiKey || !$apiSecret) {
                     throw new \Exception('Cloudinary credentials are not properly configured.');
@@ -84,7 +60,7 @@ class BlogController extends Controller
                     ]
                 ]);
                 
-                // Log before upload
+                // log before upload
                 $file = $request->file('image');
                 Log::info('Starting Cloudinary upload', [
                     'file_size' => $file->getSize(),
@@ -92,7 +68,7 @@ class BlogController extends Controller
                     'original_name' => $file->getClientOriginalName()
                 ]);
                 
-                // Upload to Cloudinary
+                // upload to Cloudinary
                 $uploadResult = (new UploadApi())->upload($request->file('image')->getRealPath(), [
                     'folder' => 'blog_images',
                     'resource_type' => 'auto',
@@ -101,12 +77,12 @@ class BlogController extends Controller
                     'overwrite' => false
                 ]);
                 
-                // Log successful upload
+                // log successful upload
                 Log::info('Cloudinary upload successful', ['result' => $uploadResult]);
                 
-                // Store the secure URL from Cloudinary
+                // store secure URL from Cloudinary
                 if (isset($uploadResult['secure_url'])) {
-                    // Store only the Cloudinary URL without any prefix
+                    // store only the Cloudinary URL without any prefix
                     $blog->image = $uploadResult['secure_url'];
                     Log::info('Image URL stored:', ['url' => $blog->image]);
                 } else {
@@ -121,7 +97,7 @@ class BlogController extends Controller
                     'request_data' => $request->all()
                 ]);
                 
-                // Check for common Cloudinary errors
+                // check for common Cloudinary errors
                 if (str_contains($errorMessage, '401 Unauthorized')) {
                     $errorMessage = 'Invalid Cloudinary credentials. Please check your configuration.';
                 } elseif (str_contains($errorMessage, 'File is empty')) {
@@ -135,15 +111,8 @@ class BlogController extends Controller
                 ], 500);
             }
         }
-        /*
-        if ($request->hasFile('imageURL')) {
-            $blog->imageURL = $validated['imageURL'];
-        }
-        */
-
-        $blog->save();
         
-        // Mail::to($blog->author->email)->send(new BlogSubmitted($blog));
+        $blog->save();
 
         return response()->json([
             'message' => 'Blog created and email sent successfully.',
@@ -221,8 +190,6 @@ class BlogController extends Controller
         });
 
         return response()->json([
-            //'data' => $blogs
-            //'total' => $blogs->currentPage(),
             'data' => $blogs->items(),
             'page' => $blogs->currentPage(),
             'total_pages' => $blogs->lastPage(),
@@ -234,8 +201,6 @@ class BlogController extends Controller
 
     function deleteBlog($id) {
         $user = auth()->user();
-
-        //$blog = Blog::find($request->id);
         $blog = Blog::find($id);
 
         if (!$blog) {

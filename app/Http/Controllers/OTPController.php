@@ -75,8 +75,6 @@ class OTPController extends Controller
 
         $userInputOTP = $request->input('otp');
 
-        // find most recent valid OTP for the user
-        // better use: created_at > 10 mins => expired
         $latestOTPRecord = OTP::where('user_id', $user->id)
             ->where('expires_at', '>', Carbon::now())
             ->orderBy('created_at', 'desc')

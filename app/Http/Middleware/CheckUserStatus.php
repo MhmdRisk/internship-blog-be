@@ -24,7 +24,7 @@ class CheckUserStatus
         // Check if user status is 'isActive'
         if ($user->status !== 'isActive') {
             return response()->json([
-                'error' => 'Account not verified. Please complete OTP verification.',
+                'error' => 'Account not verified.',
                 'status' => $user->status,
                 'message' => 'Your account is pending verification. Please verify your email with the OTP sent to your email address.'
             ], 403);

@@ -28,37 +28,37 @@ Route::get('/check-cloudinary', function() {
         'api_secret' => getenv('CLOUDINARY_API_SECRET') ? 'set' : 'not set'
     ]);
 });
-
-
-// AUTHENTICATION:
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-
-
-Route::get('/blog', [BlogController::class, 'readAllBlogs']);
-Route::get('/blog/{id}', [BlogController::class, 'readBlog']);
-
+    
     
 Route::middleware(['handshake'])->group(function () {
+    // AUTHENTICATION:
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+
+    // CHECK OUT BLOGS (regardless of whether ure registered or not)
+    Route::get('/blog', [BlogController::class, 'readAllBlogs']);
+    Route::get('/blog/{id}', [BlogController::class, 'readBlog']);
+
     Route::middleware(['jwt'])->group(function () {
         // Routes accessible to all authenticated users (including pending verification)
         Route::get('/user', [AuthController::class, 'getUser']);
-        Route::post('/logout', [AuthController::class, 'logout']);  
+        Route::post('/logout', [AuthController::class, 'logout']);
 
+        // OTP
         Route::post('/generateOTP', [OTPController::class, 'generateOTP']);
         Route::post('/verifyOTP', [OTPController::class, 'verifyOTP']); 
     
         // route requiring verified user status
-        Route::post('/user', [AuthController::class, 'updateUser'])->middleware('user.status');
+        Route::post('/user', [AuthController::class, 'updateUser']);
 
         // UPDATE BLOG requires author or admin role AND verified user status
-        Route::patch('/blog/{id}', [BlogController::class, 'updateBlog'])->middleware(['role:author,admin', 'user.status', 'verify.hashed_key']);
+        Route::patch('/blog/{id}', [BlogController::class, 'updateBlog']);
 
         // CREATE BLOG requires author/admin role, verified status, and valid hashed key
-        Route::post('/blog', [BlogController::class, 'createBlog'])->middleware(['role:author,admin', 'user.status', 'verify.hashed_key']);
+        Route::post('/blog', [BlogController::class, 'createBlog']);
                 
         // DELETE BLOG requires admin role AND verified user status
-        Route::delete('/blog/{id}', [BlogController::class, 'deleteBlog'])->middleware(['role:admin', 'user.status', 'verify.hashed_key']);
+        Route::delete('/blog/{id}', [BlogController::class, 'deleteBlog']);
     });
 });
 

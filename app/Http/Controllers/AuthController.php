@@ -17,6 +17,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Carbon\Carbon;
 
+
 class AuthController extends Controller
 {
     //
